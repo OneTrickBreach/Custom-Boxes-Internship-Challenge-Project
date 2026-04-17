@@ -76,6 +76,8 @@ CustomBoxesInternshipProject/        ← the git repo
 
 ## 3. Local run
 
+### Option A — real Claude calls (production-like)
+
 ```bash
 git clone https://github.com/OneTrickBreach/Custom-Boxes-Internship-Challenge-Project.git
 cd Custom-Boxes-Internship-Challenge-Project/customboxes-ai
@@ -87,7 +89,39 @@ npm run dev
 
 Open http://localhost:3000.
 
-If you don't have an Anthropic API key, create one at console.anthropic.com (free tier works for demo).
+Requires credits in your Anthropic account (https://console.anthropic.com/settings/billing — a $5 top-up is more than enough for the full demo flow).
+
+### Option B — free demo mode (no API key, no credits)
+
+Every API route ships with a **simulation layer** so you can record the Loom without paying anything for Claude.
+
+```bash
+cd customboxes-ai
+cp .env.local.example .env.local
+# leave ANTHROPIC_API_KEY blank (or delete the line)
+# optionally add: DEMO_MODE=true
+npm install
+npm run dev
+```
+
+Demo mode auto-activates when no API key is present. You'll see a small **"Demo Mode"** pill in the header so viewers know responses are simulated, but the app looks and behaves identically to the live version:
+
+- **Brand analysis** returns hand-crafted fixtures for `allbirds.com`, `bombas.com`, `glossier.com`, `yeti.com`; any other URL gets a reasonable generic brand derived from the hostname.
+- **Box recommendation** runs a real deterministic algorithm against the catalog using your sizing answers (weight bucket, fragility, dimensions, fit preference, industry from brand analysis) — not a hardcoded answer, a real rule-based fit that differs by input.
+- **Design generation** returns a hand-crafted 6-panel layout that interpolates the brand's company name + tagline + trust signal.
+- **Design refinement** actually transforms the design based on keywords in your prompt:
+  - *"make the logo larger"* → scales all logos up 30%
+  - *"simplify / reduce clutter"* → trims side + bottom panels to essentials
+  - *"add a sustainability message"* → adds a recycled-material line on the back
+  - *"make it more premium"* → uppercase + wider letterspacing
+  - *"add a QR code"* / *"add a barcode"* → adds the placeholder
+  - *"move tagline to top"* → actually moves the tagline element
+  - Plus playful, trust signals, handle-with-care, side-panel simplification — so the demo has plenty of visible, believable transformations.
+- **Chat** returns topical answers for ROI, ECT, kraft vs white, side panels, fragility, premium, and large-order pricing questions, plus a useful default.
+
+**Important for the submission write-up:** if you record in demo mode, disclose it clearly — say *"For this recording I'm using the app's built-in simulation layer so I don't burn API credits. The real Claude integration is in the code and switches on the moment I add a key to `.env.local` and restart — the implementation is the same, the code path just branches on `isDemoMode()`."*
+
+You can mix modes too: start in demo to show the happy path, stop the server, paste a real API key in `.env.local`, restart, and show one real end-to-end run.
 
 ---
 
@@ -175,6 +209,7 @@ Include the resulting `*.vercel.app` URL in your submission.
 | Per-box price estimates on catalog cards | | Mocked range strings |
 | PDF export | — | Not implemented (marked `[NICE]` in the build plan) |
 | Real CustomBoxes.io pricing API | — | Links out to the real site |
+| Demo / simulation mode (optional) | ✅ Real implementation — rule-based fixtures that actually transform the design based on prompt keywords; meant for recording demos without burning API credits. Toggled off when an `ANTHROPIC_API_KEY` is set, unless `DEMO_MODE=true` forces it on. | |
 
 ---
 

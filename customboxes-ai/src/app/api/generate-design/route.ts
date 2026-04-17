@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DESIGN_GENERATION_PROMPT } from '../../../lib/prompts';
 import { claudeJson, describeClaudeError } from '../../../lib/api-helpers';
+import { isDemoMode, demoDelay } from '../../../lib/demo-mode';
+import { mockDesign } from '../../../lib/demo-fixtures';
 import type {
   BrandAnalysis,
   BoxSize,
@@ -52,6 +54,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: 'Missing brand analysis or box.' },
         { status: 400 },
+      );
+    }
+
+    if (isDemoMode()) {
+      await demoDelay(1400);
+      return NextResponse.json(
+        mockDesign({
+          brand: body.brandAnalysis,
+          box: body.box,
+          boxColor: body.boxColor,
+          hasLogo: Boolean(body.hasLogo),
+        }),
       );
     }
 

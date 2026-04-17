@@ -18,12 +18,17 @@ Live app lives in [`customboxes-ai/`](customboxes-ai/).
 
 ```bash
 cd customboxes-ai
-cp .env.local.example .env.local   # add your ANTHROPIC_API_KEY
+cp .env.local.example .env.local
 npm install
 npm run dev
 ```
 
 Then open http://localhost:3000.
+
+Two modes:
+
+- **Real mode** — paste `ANTHROPIC_API_KEY=sk-ant-...` into `.env.local` and make sure you have credits (https://console.anthropic.com/settings/billing).
+- **Demo mode** — leave the key blank (or set `DEMO_MODE=true`). The app runs end-to-end with canned fixtures, and a small "Demo Mode" pill shows in the header. Refinements actually transform the design based on prompt keywords, so the demo still looks alive. See [`SUBMISSION.md`](./SUBMISSION.md) §3 for details.
 
 ## Files
 

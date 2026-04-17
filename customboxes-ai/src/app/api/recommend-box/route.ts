@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BOX_RECOMMENDATION_PROMPT } from '../../../lib/prompts';
 import { claudeJson, describeClaudeError } from '../../../lib/api-helpers';
+import { isDemoMode, demoDelay } from '../../../lib/demo-mode';
+import { mockBoxRecommendation } from '../../../lib/demo-fixtures';
 import { BOX_CATALOG } from '../../../lib/constants';
 import type {
   BrandAnalysis,
@@ -30,6 +32,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: 'Missing sizing answers or brand analysis.' },
         { status: 400 },
+      );
+    }
+
+    if (isDemoMode()) {
+      await demoDelay(900);
+      return NextResponse.json(
+        mockBoxRecommendation(body.sizingAnswers, body.brandAnalysis),
       );
     }
 

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DESIGN_REFINE_PROMPT } from '../../../lib/prompts';
 import { claudeJson, describeClaudeError } from '../../../lib/api-helpers';
+import { isDemoMode, demoDelay } from '../../../lib/demo-mode';
+import { mockRefineDesign } from '../../../lib/demo-fixtures';
 import type {
   BrandAnalysis,
   BoxSize,
@@ -62,6 +64,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: 'Missing required fields.' },
         { status: 400 },
+      );
+    }
+
+    if (isDemoMode()) {
+      await demoDelay(1100);
+      return NextResponse.json(
+        mockRefineDesign(body.currentDesign, body.userPrompt),
       );
     }
 

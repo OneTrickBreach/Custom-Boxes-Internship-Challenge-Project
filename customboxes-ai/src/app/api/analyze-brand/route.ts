@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BRAND_ANALYSIS_PROMPT } from '../../../lib/prompts';
 import { claudeJson, describeClaudeError } from '../../../lib/api-helpers';
+import { isDemoMode, demoDelay } from '../../../lib/demo-mode';
+import { mockBrandAnalysis } from '../../../lib/demo-fixtures';
 import type { BrandAnalysis } from '../../../lib/types';
 
 export const runtime = 'nodejs';
@@ -81,6 +83,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: 'Please provide a valid URL starting with http:// or https://.' },
         { status: 400 },
+      );
+    }
+
+    if (isDemoMode()) {
+      await demoDelay(1200);
+      return NextResponse.json(
+        mockBrandAnalysis(rawUrl, body.additionalNotes),
       );
     }
 

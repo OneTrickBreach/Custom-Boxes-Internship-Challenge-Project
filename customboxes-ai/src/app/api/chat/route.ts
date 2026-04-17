@@ -7,6 +7,8 @@ import {
   CLAUDE_MODEL,
   describeClaudeError,
 } from '../../../lib/api-helpers';
+import { isDemoMode, demoDelay } from '../../../lib/demo-mode';
+import { mockChatReply } from '../../../lib/demo-fixtures';
 import type { ChatMessage } from '../../../lib/types';
 
 export const runtime = 'nodejs';
@@ -36,6 +38,12 @@ export async function POST(req: NextRequest) {
         { error: 'No messages provided.' },
         { status: 400 },
       );
+    }
+
+    if (isDemoMode()) {
+      await demoDelay(800);
+      const last = messages[messages.length - 1];
+      return NextResponse.json({ reply: mockChatReply(last.content) });
     }
 
     const client = getAnthropic();

@@ -1,7 +1,17 @@
-import { Package } from 'lucide-react';
+'use client';
+import { useEffect, useState } from 'react';
+import { Package, Sparkles } from 'lucide-react';
 import { CUSTOMBOXES_LINKS } from '../lib/constants';
 
 export function Header() {
+  const [demoMode, setDemoMode] = useState<boolean | null>(null);
+  useEffect(() => {
+    fetch('/api/status')
+      .then((r) => r.json())
+      .then((d) => setDemoMode(Boolean(d.demoMode)))
+      .catch(() => setDemoMode(null));
+  }, []);
+
   return (
     <header className="w-full border-b hairline bg-white/80 backdrop-blur sticky top-0 z-30">
       <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
@@ -24,6 +34,20 @@ export function Header() {
           <span className="hidden md:inline text-[11px] uppercase tracking-[0.18em] text-[color:var(--text-secondary)] border-l hairline pl-3 ml-1">
             AI Packaging Designer
           </span>
+          {demoMode && (
+            <span
+              title="Demo mode: responses are simulated and do not call the Anthropic API."
+              className="ml-2 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.18em] px-2 py-0.5 rounded-full border"
+              style={{
+                background: 'var(--accent-light)',
+                borderColor: '#e9c6b2',
+                color: 'var(--accent-dark)',
+              }}
+            >
+              <Sparkles className="w-3 h-3" />
+              Demo Mode
+            </span>
+          )}
         </a>
         <nav className="flex items-center gap-5 text-[13px] text-[color:var(--text-secondary)]">
           <a
