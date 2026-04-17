@@ -82,6 +82,64 @@ export function extractText(message: ClaudeMessage): string {
   return '';
 }
 
+export interface ClaudeFriendlyError {
+  status: number;
+  userMessage: string;
+  code: 'credits' | 'auth' | 'rate_limit' | 'model' | 'network' | 'unknown';
+}
+
+/** Convert any Anthropic / network error into a message safe to surface to the UI. */
+export function describeClaudeError(err: unknown): ClaudeFriendlyError {
+  if (err instanceof Anthropic.APIError) {
+    const msg = (err.error as { error?: { message?: string } } | undefined)
+      ?.error?.message || err.message;
+    const lower = msg.toLowerCase();
+    if (lower.includes('credit balance') || lower.includes('billing')) {
+      return {
+        status: 402,
+        code: 'credits',
+        userMessage:
+          'Your Anthropic account is out of credits. Add credits at https://console.anthropic.com/settings/billing and try again.',
+      };
+    }
+    if (err.status === 401 || lower.includes('api key') || lower.includes('authentication')) {
+      return {
+        status: 401,
+        code: 'auth',
+        userMessage:
+          'Your ANTHROPIC_API_KEY is missing or invalid. Check .env.local and restart the dev server.',
+      };
+    }
+    if (err.status === 429 || lower.includes('rate limit')) {
+      return {
+        status: 429,
+        code: 'rate_limit',
+        userMessage:
+          'Rate limit reached. Wait a few seconds and try again.',
+      };
+    }
+    if (lower.includes('model') && (lower.includes('not_found') || lower.includes('invalid') || lower.includes('deprecated'))) {
+      return {
+        status: 400,
+        code: 'model',
+        userMessage:
+          'The Claude model is invalid or no longer available. Update CLAUDE_MODEL in src/lib/constants.ts.',
+      };
+    }
+    return {
+      status: err.status || 500,
+      code: 'unknown',
+      userMessage: msg || 'The AI call failed.',
+    };
+  }
+  const message = err instanceof Error ? err.message : 'Unexpected error.';
+  return {
+    status: 500,
+    code: 'network',
+    userMessage: message,
+  };
+}
+
 export async function claudeJson<T>(opts: {
   prompt: string;
   maxTokens?: number;

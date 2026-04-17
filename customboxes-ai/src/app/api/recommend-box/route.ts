@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BOX_RECOMMENDATION_PROMPT } from '../../../lib/prompts';
-import { claudeJson } from '../../../lib/api-helpers';
+import { claudeJson, describeClaudeError } from '../../../lib/api-helpers';
 import { BOX_CATALOG } from '../../../lib/constants';
 import type {
   BrandAnalysis,
@@ -72,10 +72,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(result);
   } catch (err) {
-    console.error('recommend-box fatal', err);
-    return NextResponse.json(
-      { error: 'Unexpected error generating recommendation.' },
-      { status: 500 },
-    );
+    const { status, userMessage, code } = describeClaudeError(err);
+    console.error('recommend-box failed:', code, userMessage);
+    return NextResponse.json({ error: userMessage, code }, { status });
   }
 }

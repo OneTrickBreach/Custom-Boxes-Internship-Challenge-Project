@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type Anthropic from '@anthropic-ai/sdk';
 import { CHAT_AGENT_PROMPT } from '../../../lib/prompts';
-import { getAnthropic, extractText, CLAUDE_MODEL } from '../../../lib/api-helpers';
+import {
+  getAnthropic,
+  extractText,
+  CLAUDE_MODEL,
+  describeClaudeError,
+} from '../../../lib/api-helpers';
 import type { ChatMessage } from '../../../lib/types';
 
 export const runtime = 'nodejs';
@@ -44,10 +49,8 @@ export async function POST(req: NextRequest) {
     const text = extractText(response);
     return NextResponse.json({ reply: text });
   } catch (err) {
-    console.error('chat fatal', err);
-    return NextResponse.json(
-      { error: 'Chat failed. Please try again.' },
-      { status: 500 },
-    );
+    const { status, userMessage, code } = describeClaudeError(err);
+    console.error('chat failed:', code, userMessage);
+    return NextResponse.json({ error: userMessage, code }, { status });
   }
 }

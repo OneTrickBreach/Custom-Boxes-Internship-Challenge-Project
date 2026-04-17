@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BRAND_ANALYSIS_PROMPT } from '../../../lib/prompts';
-import { claudeJson } from '../../../lib/api-helpers';
+import { claudeJson, describeClaudeError } from '../../../lib/api-helpers';
 import type { BrandAnalysis } from '../../../lib/types';
 
 export const runtime = 'nodejs';
@@ -110,17 +110,13 @@ export async function POST(req: NextRequest) {
       });
       return NextResponse.json(analysis);
     } catch (err) {
-      console.error('Claude parse failed', err);
-      return NextResponse.json(
-        { error: 'The AI analysis failed. Please try again.' },
-        { status: 500 },
-      );
+      const { status, userMessage, code } = describeClaudeError(err);
+      console.error('analyze-brand failed:', code, userMessage);
+      return NextResponse.json({ error: userMessage, code }, { status });
     }
   } catch (err) {
-    console.error('analyze-brand fatal', err);
-    return NextResponse.json(
-      { error: 'Unexpected error processing your request.' },
-      { status: 500 },
-    );
+    const { status, userMessage, code } = describeClaudeError(err);
+    console.error('analyze-brand fatal:', code, userMessage);
+    return NextResponse.json({ error: userMessage, code }, { status });
   }
 }

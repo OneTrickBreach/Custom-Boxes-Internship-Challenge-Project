@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DESIGN_GENERATION_PROMPT } from '../../../lib/prompts';
-import { claudeJson } from '../../../lib/api-helpers';
+import { claudeJson, describeClaudeError } from '../../../lib/api-helpers';
 import type {
   BrandAnalysis,
   BoxSize,
@@ -77,10 +77,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(layout);
   } catch (err) {
-    console.error('generate-design fatal', err);
-    return NextResponse.json(
-      { error: 'Unexpected error generating design.' },
-      { status: 500 },
-    );
+    const { status, userMessage, code } = describeClaudeError(err);
+    console.error('generate-design failed:', code, userMessage);
+    return NextResponse.json({ error: userMessage, code }, { status });
   }
 }

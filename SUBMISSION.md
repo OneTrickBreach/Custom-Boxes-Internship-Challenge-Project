@@ -209,14 +209,30 @@ Include the resulting `*.vercel.app` URL in your submission.
 
 - **Runs locally by default.** To satisfy "live prototype URL", deploy to Vercel (§5).
 - **Homepage-only scrape.** A multi-page crawl would improve brand inference but was out of scope for 60 minutes.
-- **Claude model is pinned** to `claude-sonnet-4-20250514` because the build plan specified it. If you want a newer model, change `CLAUDE_MODEL` in [customboxes-ai/src/lib/constants.ts](customboxes-ai/src/lib/constants.ts).
+- **Claude model is pinned** to `claude-sonnet-4-6`. Upgrade / downgrade by editing `CLAUDE_MODEL` in [customboxes-ai/src/lib/constants.ts](customboxes-ai/src/lib/constants.ts). (Haiku 4.5 = `claude-haiku-4-5-20251001` if you want to cut cost by ~5x at some quality cost on design JSON.)
 - **Price estimates are mocked tiers** — the ROI drawer always links out to the real CustomBoxes.io ROI calculator for exact numbers.
 - **No PDF export.** The plan marked this `[NICE]` and SVG + PNG covers the print-ready-file requirement adequately.
 - **The 3D preview is CSS-3D**, not a real WebGL mockup — hovering rotates it; it shows 5 visible faces (front/back/left/right/top), not bottom.
 
 ---
 
-## 11. Final pre-submission checklist
+## 11. Troubleshooting — when the app shows a Claude error
+
+The app now surfaces the real Anthropic error message in the UI. The most common ones:
+
+| Message contains | What it means | Fix |
+|---|---|---|
+| *"credit balance is too low"* / *"billing"* | Your Anthropic account has $0 credits | Go to https://console.anthropic.com/settings/billing → add credits (a $5 top-up is plenty for a demo) |
+| *"API key"* / *"authentication"* | `ANTHROPIC_API_KEY` missing or wrong | Check `customboxes-ai/.env.local`, paste a valid key, **restart `npm run dev`** (Next.js only reads env on boot) |
+| *"rate limit"* | Too many requests too fast | Wait 10–20s and retry |
+| *"model"* + *"not found"* / *"invalid"* / *"deprecated"* | The model string is stale | Edit `CLAUDE_MODEL` in [customboxes-ai/src/lib/constants.ts](customboxes-ai/src/lib/constants.ts) — current default is `claude-sonnet-4-6` |
+| Network / fetch failure on the URL analysis step | Target site blocked the scrape | Try a different URL (most major brand sites work: allbirds.com, bombas.com, glossier.com, yeti.com) |
+
+> **Note:** If you edit `.env.local` while the dev server is running, **you must restart it.** Next.js only reads env vars at boot. Stop with Ctrl+C, run `npm run dev` again.
+
+---
+
+## 12. Final pre-submission checklist
 
 - [ ] Cloned the repo fresh and confirmed `npm install && npm run dev` works
 - [ ] Set `ANTHROPIC_API_KEY` in `.env.local`
