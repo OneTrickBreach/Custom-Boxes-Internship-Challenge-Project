@@ -1,0 +1,34 @@
+import type { Metadata } from 'next';
+import { DM_Serif_Display, DM_Sans } from 'next/font/google';
+import './globals.css';
+
+const dmSans = DM_Sans({
+  variable: '--font-dm-sans',
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+});
+
+const dmSerif = DM_Serif_Display({
+  variable: '--font-dm-serif',
+  subsets: ['latin'],
+  weight: ['400'],
+});
+
+export const metadata: Metadata = {
+  title: 'CustomBoxes.io — AI Packaging Designer',
+  description:
+    'Generate a print-ready shipping box design tailored to your brand. Powered by CustomBoxes.io.',
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
+  return (
+    <html
+      lang="en"
+      className={`${dmSans.variable} ${dmSerif.variable} h-full antialiased`}
+    >
+      <body className="min-h-full flex flex-col grain">{children}</body>
+    </html>
+  );
+}
