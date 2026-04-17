@@ -2,6 +2,8 @@
 
 Submission for the CustomBoxes.io 60-minute AI Internship Challenge.
 
+> **Submitting?** Read [`SUBMISSION.md`](./SUBMISSION.md) — it has the demo script, Loom checklist, tools-used / real-vs-mocked / what-to-improve-next write-ups, the scoring-rubric self-check, and the final pre-submission checklist.
+
 A working prototype that:
 - Takes a company URL
 - Analyzes the brand via Claude (`claude-sonnet-4-20250514`)
