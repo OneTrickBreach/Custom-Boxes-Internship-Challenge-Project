@@ -1,55 +1,157 @@
-# Submission Guide — CustomBoxes.io AI Packaging Designer
+# CustomBoxes.io — AI Internship Challenge Submission
 
-Everything you need to submit this challenge, in one place.
-
-**Repo:** https://github.com/OneTrickBreach/Custom-Boxes-Internship-Challenge-Project
-**Challenge due:** April 19, 2026 at 11pm Eastern
-
----
-
-## 1. What to submit (per the challenge spec)
-
-The spec's **Required Deliverables** section says:
-
-1. **Live prototype URL or runnable app** — you have a runnable app. Optional: deploy to Vercel for a live URL (see §5 below).
-2. **3–5 minute screen recording (Loom)** — record your screen walking through both flows (see §4).
-3. **One example with known box size** — Flow A below.
-4. **One example with recommended box size** — Flow B below.
-5. **Short summary** including:
-   - Tools used → see §6
-   - What is real vs mocked → see §7
-   - What you would improve next → see §8
-
-So the final submission package is:
-
-- Link to the GitHub repo (above)
-- Link to the Loom recording
-- A short write-up (you can copy §6–§8 of this doc verbatim or paste them into the Loom description / submission form)
-- Optional: the live Vercel URL if you deploy
+**Submitted by:** Ishan Biswas · `biswas.is@northeastern.edu`
+**Submitted for:** CustomBoxes.io AI Internship Challenge — Step 2 (60-minute AI Packaging Designer Build)
+**Repository:** https://github.com/OneTrickBreach/Custom-Boxes-Internship-Challenge-Project
+**Demo recording:** [`customboxes-ai-demo.mkv`](./customboxes-ai-demo.mkv) (in repo root)
 
 ---
 
-## 2. Repo structure
+## Deliverables checklist
+
+The challenge spec lists five required deliverables. Here's how this submission covers each:
+
+| # | Deliverable | Where it lives |
+|---|---|---|
+| 1 | Live prototype URL **or** runnable app | Runnable app: [`customboxes-ai/`](./customboxes-ai/). Run with `npm install && npm run dev`. Also works in a zero-cost demo mode (no API key required). |
+| 2 | 3–5 minute screen recording | [`customboxes-ai-demo.mkv`](./customboxes-ai-demo.mkv) in the repo root. |
+| 3 | Example with **known** box size | Shown in the recording. |
+| 4 | Example with **recommended** box size | Shown in the recording. |
+| 5 | Short written summary | §3 (Tools used), §4 (Real vs mocked), §5 (What I'd improve next) of this document. |
+
+---
+
+## 1. TL;DR
+
+A production-quality working prototype of an AI Packaging Designer for CustomBoxes.io. The user pastes a company URL; the tool scrapes the site, analyzes the brand with Claude, asks the sizing questions if needed, recommends a box from a fixed catalog (no invented dimensions), and generates a black-ink-only 6-panel SVG dieline on kraft or white corrugated. The user iterates with natural-language prompts and per-panel controls, and exports SVG or PNG. All CustomBoxes.io links (ROI calculator, refund policy, large-order quote) are wired in, plus a floating ROI drawer and a contextual packaging assistant chat.
+
+Built with Next.js 16 App Router, TypeScript, Tailwind v4, and the Anthropic Claude API (`claude-sonnet-4-6`). Five real Claude-backed API routes; resilient JSON parsing with balanced-brace extraction and retry; automatic fallback to a deterministic rule-based demo mode when credits are out so the UI never breaks; SVG rendering throughout so every output is genuinely print-ready.
+
+---
+
+## 2. How to run it
+
+### Quick start (demo mode, free)
+
+```bash
+git clone https://github.com/OneTrickBreach/Custom-Boxes-Internship-Challenge-Project.git
+cd Custom-Boxes-Internship-Challenge-Project/customboxes-ai
+cp .env.local.example .env.local   # leave ANTHROPIC_API_KEY blank
+npm install
+npm run dev
+```
+
+Open http://localhost:3000. A small **"Demo Mode"** pill in the header indicates responses are simulated — the full flow works end-to-end with no API credits burned.
+
+### Production mode (real Claude calls)
+
+Same steps, but paste a valid `ANTHROPIC_API_KEY=sk-ant-...` into `.env.local` (get one at https://console.anthropic.com/settings/keys, add credits at `/settings/billing`). A $5 top-up is plenty — a full run is pennies.
+
+The app also **auto-falls-back** to demo fixtures if Claude returns a billing / auth / rate-limit error, so the flow never breaks mid-session.
+
+### Environment variables
+
+| Var | Purpose |
+|---|---|
+| `ANTHROPIC_API_KEY` | Real Claude calls. Leave blank to auto-activate demo mode. |
+| `DEMO_MODE` | Force demo mode even if a key is set. `true` / `1` / `yes`. |
+
+---
+
+## 3. Tools used
+
+- **Next.js 16** (App Router) with TypeScript — API routes + React frontend in one project, keeps the API key server-side.
+- **Anthropic Claude** (`claude-sonnet-4-6`) via `@anthropic-ai/sdk` — brand analysis, box recommendation, design generation, design refinement, chat.
+- **Tailwind CSS v4** — design tokens through CSS custom properties (`--kraft`, `--ink-black`, `--accent`, etc.) so the styling stays on-brand.
+- **SVG** — the packaging dieline is pure SVG so it's genuinely print-ready. No image-generation API, no raster.
+- **`lucide-react`** for iconography.
+- **DM Serif Display** + **DM Sans** from Google Fonts — industrial-clean editorial feel, not generic AI.
+- **Claude Code** was my primary coding assistant for scaffolding and iterating under the time constraint.
+
+---
+
+## 4. What is real vs mocked
+
+| Feature | Status |
+|---|---|
+| URL fetch + HTML scrape (title, OG, meta, body to 3k chars) | **Real** — `fetch` with a desktop Chrome UA, strips scripts/styles/SVGs. |
+| Brand analysis | **Real** Claude call returning structured JSON. |
+| Box catalog (14 sizes across Standard / Popular Custom / Any Size) | **Real** — pulled from the plan. |
+| Box recommendation — catalog-constrained, with confidence + rationale + ECT + color + alternate | **Real** Claude call. The AI cannot invent dimensions; it must pick a catalog `id`. |
+| Design generation — 6-panel JSON layout | **Real** Claude call → SVG. |
+| Design refinement via AI prompt | **Real** — full current design sent round-trip so panel logic is preserved. |
+| Contextual packaging chat assistant | **Real** — brand + box + design injected as system-prompt context. |
+| SVG + PNG export | **Real** — inline serialize + canvas render. |
+| Demo / simulation mode | **Real fallback implementation** — hand-crafted brand fixtures, a deterministic box-fit algorithm against the catalog, a hand-crafted 6-panel template, and keyword-driven refinement transformations. Activates when no API key is set, when `DEMO_MODE=true`, or when Claude returns a billing / auth / rate-limit error. |
+| ROI / break-even / volume tier pricing | **Mocked tiers** ($3.50 at 100 qty → $1.20 at 5000+). Setup cost $300 flat. Drawer always links out to the real CustomBoxes.io ROI calculator for exact numbers. |
+| Per-box price estimates on catalog cards | **Mocked** range strings. |
+| PDF export | **Not implemented** (marked `[NICE]` in the plan). SVG + PNG cover the print-ready requirement. |
+| Real CustomBoxes.io pricing API | **Not integrated** — links out to the real site. |
+
+---
+
+## 5. What I'd improve next
+
+- **Real CustomBoxes.io pricing API integration** so the ROI numbers reflect current tiers instead of mocked defaults.
+- **Print-spec PDF export** with CMYK-safe black, bleed, and trim marks for direct print-vendor handoff.
+- **Multi-page crawl of the source brand** (`/about`, `/sustainability`, `/press`) instead of homepage-only — more signal → better packaging choices.
+- **Shopify app integration** so a store owner can push the finalized design straight into a CustomBoxes.io order from their admin.
+- **Template / lookbook library** seeded with real CustomBoxes.io packaging examples, so the AI has concrete visual references instead of text-only prompts.
+- **Revision history with visual diff** and named checkpoints, so a brand can compare v1 vs v3 at a glance.
+- **WebGL 3D preview** with real corrugated texture mapping and lighting, swap from the CSS-3D approximation.
+- **Preflight / print-readiness score** (min text size, stroke weight, element-to-fold clearance) with a linter-style checklist.
+- **Collaborative share links** so a brand can send `customboxes.io/review/abc123` to a teammate for approval.
+
+---
+
+## 6. How the scoring rubric maps to this build
+
+| Rubric area | Points | How it's addressed |
+|---|---|---|
+| Packaging layout quality + ability to make changes | 30 | Panel-aware 6-panel SVG dieline with dashed fold lines, corner crop marks, proportional dimensions from real `L×W×H`, black-ink-only enforced via an SVG filter on logo images. AI-prompt refinement preserves panel logic. Per-panel content scale sliders for all six faces, global logo size, 1 / 2 / 4-side logo placement toggle. SVG + PNG export. |
+| End-to-end working prototype | 20 | URL → brand → size (known **or** unknown) → design → refine → export. Every step is a real API call. No placeholder screens or dead buttons. |
+| Brand understanding from URL | 20 | Real HTML scrape pulling title, OG tags, meta description, visible body text. Structured `BrandAnalysis` with tone, tagline, target customer, visual style, typography notes, messaging signals, recommended box color, industry. Every field is editable inline before continuing. |
+| Box size recommendation quality | 20 | 14-box catalog. AI is constrained by `id`, cannot invent dimensions. Output: confidence badge (high / medium / low), 2–3 sentence rationale, ECT rating (`32 ECT` / `Heavy Duty`), box color, alternate option. Refund-policy disclaimer inline. |
+| Tool integration + technical judgment | 5 | Next.js 16 App Router, Tailwind v4, `@anthropic-ai/sdk`, resilient JSON parsing with balanced-brace scan + retry, six API routes, `useReducer` state, inline SVG for genuine print-readiness, rule-based demo mode so the app never blocks on billing. |
+| Polish + clarity | 5 | DM Serif Display + DM Sans, CustomBoxes.io orange (`#D4622B`) accent, kraft / white box chip swatches, loading states on every API call, inline error surfacing with actionable messages, floating ROI drawer, floating packaging AI assistant, footer with all three required CustomBoxes.io links. |
+
+---
+
+## 7. Known limitations / honest caveats
+
+- **Runs locally by default.** No live Vercel URL in this submission; evaluator can clone and `npm run dev`. Demo mode means no API key is required to see the full flow.
+- **Homepage-only scrape.** A multi-page crawl (`/about`, `/sustainability`) would lift brand inference quality; cut for scope.
+- **Claude model is pinned** to `claude-sonnet-4-6` in [`customboxes-ai/src/lib/constants.ts`](customboxes-ai/src/lib/constants.ts). Change the constant to swap models.
+- **Price estimates are mocked tiers.** The real calculator is linked from the ROI drawer.
+- **No PDF export.** SVG + PNG cover the print-ready requirement; PDF was marked `[NICE]` in the plan.
+- **3D preview is CSS-3D**, not WebGL — shows 5 faces (front / back / left / right / top), rotates on hover and on click-and-drag, with a reset button.
+- **Demo mode is deliberately visible** — a pill in the header says "Demo Mode" so evaluators always know whether a given response came from Claude or from the fallback layer. This is an honesty feature, not a bug.
+
+---
+
+## 8. Repo layout
 
 ```
-CustomBoxesInternshipProject/        ← the git repo
-├── Public - AI Internship Challenge (60 min).md   ← original challenge spec
-├── README.md                         ← short project readme
-├── SUBMISSION.md                     ← this file
-├── plan.md                           ← build plan
-├── prompt.md                         ← prompt given to the coding agent
-└── customboxes-ai/                   ← the Next.js app
+Custom-Boxes-Internship-Challenge-Project/
+├── README.md                                            overview + run instructions
+├── SUBMISSION.md                                        this document
+├── customboxes-ai-demo.mkv                              demo recording (42MB)
+├── Public - AI Internship Challenge (60 min).md         original challenge spec
+├── plan.md                                              build plan
+├── prompt.md                                            prompt handed to the coding agent
+└── customboxes-ai/                                      the Next.js app
     ├── src/
     │   ├── app/
-    │   │   ├── page.tsx              ← main wizard orchestrator (useReducer)
-    │   │   ├── layout.tsx            ← DM Serif + DM Sans fonts
-    │   │   ├── globals.css           ← kraft/ink/accent CSS tokens + utilities
+    │   │   ├── page.tsx                                 useReducer wizard orchestrator
+    │   │   ├── layout.tsx                               DM Serif + DM Sans fonts
+    │   │   ├── globals.css                              kraft / ink / accent tokens
     │   │   └── api/
-    │   │       ├── analyze-brand/route.ts   ← URL scrape + Claude brand analysis
-    │   │       ├── recommend-box/route.ts   ← Catalog-constrained box pick
-    │   │       ├── generate-design/route.ts ← 6-panel design JSON
-    │   │       ├── refine-design/route.ts   ← Full-design iterative refinement
-    │   │       └── chat/route.ts            ← Context-aware AI assistant
+    │   │       ├── analyze-brand/route.ts               URL scrape + Claude brand analysis
+    │   │       ├── recommend-box/route.ts               catalog-constrained box pick
+    │   │       ├── generate-design/route.ts             6-panel design JSON
+    │   │       ├── refine-design/route.ts               full-design iterative refinement
+    │   │       ├── chat/route.ts                        context-aware packaging assistant
+    │   │       └── status/route.ts                      demo-mode detection endpoint
     │   ├── components/
     │   │   ├── Header.tsx
     │   │   ├── StepIndicator.tsx
@@ -58,235 +160,46 @@ CustomBoxesInternshipProject/        ← the git repo
     │   │   ├── Step3_BoxSize.tsx
     │   │   ├── Step4_DesignGen.tsx
     │   │   ├── Step5_DesignEditor.tsx
-    │   │   ├── BoxLayoutSVG.tsx      ← flattened 6-panel SVG dieline
-    │   │   ├── Box3DPreview.tsx      ← CSS 3D with cropped-viewBox faces
-    │   │   ├── ROICalculator.tsx     ← ROI + break-even + comp shop
-    │   │   └── AIChat.tsx            ← floating packaging assistant
+    │   │   ├── BoxLayoutSVG.tsx                         flattened 6-panel SVG dieline
+    │   │   ├── Box3DPreview.tsx                         CSS 3D with cropped viewBox faces
+    │   │   ├── ROICalculator.tsx                        ROI + break-even + comp shop
+    │   │   ├── AIChat.tsx                               floating packaging assistant
+    │   │   └── ui/ToggleSwitch.tsx
     │   └── lib/
-    │       ├── constants.ts          ← 14-box catalog + CustomBoxes.io links + price tiers + Claude model
-    │       ├── types.ts              ← BrandAnalysis, BoxSize, DesignLayout, etc.
-    │       ├── prompts.ts            ← 5 Claude prompt templates (brand / recommend / generate / refine / chat)
-    │       ├── svg-templates.ts      ← cross-layout math + INK/KRAFT constants
-    │       └── api-helpers.ts        ← resilient JSON parser + retry helper
-    ├── .env.local.example            ← copy to .env.local and add ANTHROPIC_API_KEY
+    │       ├── constants.ts                             14-box catalog + links + Claude model
+    │       ├── types.ts                                 BrandAnalysis, BoxSize, DesignLayout, …
+    │       ├── prompts.ts                               5 Claude prompt templates
+    │       ├── svg-templates.ts                         cross-layout math + ink constants
+    │       ├── api-helpers.ts                           JSON parser + retry + error mapper
+    │       ├── demo-mode.ts                             isDemoMode() + demoDelay()
+    │       └── demo-fixtures.ts                         brand / box / design / chat fixtures
+    ├── .env.local.example                               copy to .env.local
     └── package.json
 ```
 
 ---
 
-## 3. Local run
+## 9. CustomBoxes.io links wired into the app
 
-### Option A — real Claude calls (production-like)
-
-```bash
-git clone https://github.com/OneTrickBreach/Custom-Boxes-Internship-Challenge-Project.git
-cd Custom-Boxes-Internship-Challenge-Project/customboxes-ai
-cp .env.local.example .env.local
-# open .env.local and paste your real ANTHROPIC_API_KEY=sk-ant-...
-npm install
-npm run dev
-```
-
-Open http://localhost:3000.
-
-Requires credits in your Anthropic account (https://console.anthropic.com/settings/billing — a $5 top-up is more than enough for the full demo flow).
-
-### Option B — free demo mode (no API key, no credits)
-
-Every API route ships with a **simulation layer** so you can record the Loom without paying anything for Claude.
-
-```bash
-cd customboxes-ai
-cp .env.local.example .env.local
-# leave ANTHROPIC_API_KEY blank (or delete the line)
-# optionally add: DEMO_MODE=true
-npm install
-npm run dev
-```
-
-Demo mode auto-activates when no API key is present. You'll see a small **"Demo Mode"** pill in the header so viewers know responses are simulated, but the app looks and behaves identically to the live version:
-
-- **Brand analysis** returns hand-crafted fixtures for `allbirds.com`, `bombas.com`, `glossier.com`, `yeti.com`; any other URL gets a reasonable generic brand derived from the hostname.
-- **Box recommendation** runs a real deterministic algorithm against the catalog using your sizing answers (weight bucket, fragility, dimensions, fit preference, industry from brand analysis) — not a hardcoded answer, a real rule-based fit that differs by input.
-- **Design generation** returns a hand-crafted 6-panel layout that interpolates the brand's company name + tagline + trust signal.
-- **Design refinement** actually transforms the design based on keywords in your prompt:
-  - *"make the logo larger"* → scales all logos up 30%
-  - *"simplify / reduce clutter"* → trims side + bottom panels to essentials
-  - *"add a sustainability message"* → adds a recycled-material line on the back
-  - *"make it more premium"* → uppercase + wider letterspacing
-  - *"add a QR code"* / *"add a barcode"* → adds the placeholder
-  - *"move tagline to top"* → actually moves the tagline element
-  - Plus playful, trust signals, handle-with-care, side-panel simplification — so the demo has plenty of visible, believable transformations.
-- **Chat** returns topical answers for ROI, ECT, kraft vs white, side panels, fragility, premium, and large-order pricing questions, plus a useful default.
-
-**Important for the submission write-up:** if you record in demo mode, disclose it clearly — say *"For this recording I'm using the app's built-in simulation layer so I don't burn API credits. The real Claude integration is in the code and switches on the moment I add a key to `.env.local` and restart — the implementation is the same, the code path just branches on `isDemoMode()`."*
-
-You can mix modes too: start in demo to show the happy path, stop the server, paste a real API key in `.env.local`, restart, and show one real end-to-end run.
-
-### Automatic fallback
-
-The app **also auto-falls-back** to demo fixtures server-side if Claude itself returns a `credits` / `auth` / `rate_limit` error. So even if you start the app in "real" mode with an API key that's run out, the flow completes (and the UI flips the **Demo Mode** pill on so you know it's simulated). This makes the prototype demoable regardless of billing state — there's no way to get stuck at a "credits too low" wall mid-flow.
+- Home → https://customboxes.io
+- ROI / Break-even / Comp Shop → https://customboxes.io/pages/custom-shipping-boxes-roi-breakeven-comp-shop-calculators
+- Refund Policy → https://customboxes.io/policies/refund-policy
+- Large Order Quote (5000+ boxes / mo) → https://customboxes.io/pages/large-order-quote-request-form
+- Standard Boxes collection → https://customboxes.io/collections/standard-shipping-boxes
 
 ---
 
-## 4. Demo script for the Loom recording (3–5 min total)
+## 10. Troubleshooting
 
-Record your full screen at 1080p. Speak briefly over each step.
-
-### Flow A — Known box size (~90 seconds)
-
-1. **URL entry:** paste `https://allbirds.com` (or click the chip). Optionally upload a logo.
-2. Click **Analyze My Brand** — wait ~6–10s. Point out the structured brand analysis: tone, target customer, visual style, messaging signals, recommended box color, etc.
-3. Fill in **Monthly Box Volume** (e.g. `800`) + **Current Cost / Box** (e.g. `0.50`) + toggle **Currently Branded?**. Click **Continue to Box Selection**.
-4. Click **Yes, I know my size** → switch to the **Standard Sizes** tab → click `10×8×6` → **Continue to Design**.
-5. Wait for the flattened 6-panel SVG dieline to render. Show:
-   - The cross/T layout with TOP, BOTTOM, LEFT, FRONT, RIGHT, BACK panels
-   - Fold lines (dashed) + crop marks at corners
-   - Design notes from Claude
-   - 3D preview below (hover to rotate)
-6. Toggle **kraft ↔ white** background. Drag the **logo size** slider. Click **1 / 2 / 4 sides**.
-7. Click **Refine Design →**.
-8. Click the suggestion chip **"Make the logo larger"** → send. Point out the SVG updating live.
-9. Type `"simplify the side panels and add a sustainability line on the back"` → send.
-10. Open **per-panel logo sizing**: scale up FRONT to 130%, shrink TOP to 70%.
-11. Click **Download SVG**. Show the downloaded file.
-
-### Flow B — Unknown box size + ROI + AI chat (~90 seconds)
-
-1. Click the **Step 1** pill in the indicator to go back. Enter `https://bombas.com` → analyze.
-2. Continue through Step 2.
-3. Click **No, help me choose**.
-4. Fill: product = *"Four pairs of merino wool socks in mailer sleeves"*, weight = **Under 5 lb**, dimensions = `8×6×2`, fragility = **Not fragile**, inserts = **No**, fit = **Standard** → **Recommend My Box**.
-5. Point out the AI recommendation card: confidence badge, rationale, ECT rating, alternate box, and the refund-policy disclaimer.
-6. Click **Use this box & design my packaging**.
-7. Click the **ROI** pill (bottom-left) → show monthly comparison, break-even months, annual savings, the CustomBoxes.io ROI link, and the volume-quote CTA if you bump the volume to `5500`.
-8. Close ROI. Click the **orange chat bubble** (bottom-right).
-9. Ask *"What should go on the side panels for an apparel brand?"* → wait for Claude to answer.
-10. Close chat. Do one more refinement prompt (*"add a QR code placeholder on the back"*) → download PNG.
-
-### What to narrate
-
-- "This is a real Next.js app. Every analysis/recommendation/design call is a live Claude API call."
-- "The box catalog is fixed — the AI cannot invent dimensions."
-- "Every design element is rendered as SVG with black ink on kraft or white only."
-- "Refinements send the full current design to Claude so panel logic is preserved."
-
----
-
-## 5. Optional — deploy to Vercel for a live URL
-
-```bash
-cd customboxes-ai
-npx vercel
-# follow the prompts
-# when asked about env vars, add ANTHROPIC_API_KEY = <your key>
-```
-
-Include the resulting `*.vercel.app` URL in your submission.
-
----
-
-## 6. Tools used (copy into submission write-up)
-
-- **Next.js 16** (App Router) with TypeScript and Tailwind CSS v4
-- **Anthropic Claude** (`claude-sonnet-4-20250514`) via `@anthropic-ai/sdk` for brand analysis, box recommendation, design generation, refinement, and chat
-- **`lucide-react`** for iconography
-- **DM Serif Display** + **DM Sans** from Google Fonts for the industrial-clean aesthetic
-- **SVG** as the packaging rendering format (vector, print-ready, no image-gen API dependency)
-- **Claude Code** as the coding assistant to scaffold and iterate on the app
-
----
-
-## 7. What is real vs mocked (copy into submission write-up)
-
-| Feature | Real | Mocked |
-|---|---|---|
-| URL fetch / HTML scrape | ✅ Real `fetch` of the URL with a browser UA, strips scripts/styles, grabs title, OG, meta, body (≤3000 chars) | |
-| Brand analysis | ✅ Real Claude call returning structured JSON | |
-| Box catalog | ✅ 14 real boxes covering Standard / Popular Custom / Any Size | |
-| Box size recommendation | ✅ Real Claude call, **constrained** to the catalog (by box id), with confidence + rationale + ECT + color | |
-| Design generation | ✅ Real Claude call producing a 6-panel JSON layout that SVG renders | |
-| Design refinement via AI prompt | ✅ Real Claude call, full-design round trip, preserves panel logic | |
-| AI chat assistant | ✅ Real Claude call with brand + box + design as system-prompt context | |
-| SVG + PNG export | ✅ Real canvas-based export | |
-| ROI / break-even / volume tier pricing | | **Mocked tiers**: $3.50 (100) → $2.90 (250) → $2.50 (500) → $1.80 (1000) → $1.45 (2500) → $1.20 (5000+). Setup cost $300 flat. The real calculator is linked from the drawer. |
-| Per-box price estimates on catalog cards | | Mocked range strings |
-| PDF export | — | Not implemented (marked `[NICE]` in the build plan) |
-| Real CustomBoxes.io pricing API | — | Links out to the real site |
-| Demo / simulation mode (optional) | ✅ Real implementation — rule-based fixtures that actually transform the design based on prompt keywords; meant for recording demos without burning API credits. Toggled off when an `ANTHROPIC_API_KEY` is set, unless `DEMO_MODE=true` forces it on. | |
-
----
-
-## 8. What I would improve next (copy into submission write-up)
-
-- **Real CustomBoxes.io pricing API integration** so ROI numbers reflect current tiers instead of the mocked defaults.
-- **Print-spec PDF export** with CMYK-safe black, bleed, and trim marks for direct print-vendor handoff.
-- **Multi-page crawl of the source brand** (`/about`, `/sustainability`, `/press`) instead of homepage-only — more signal → better packaging choices.
-- **Shopify app integration** so a store can push the design straight into a CustomBoxes.io order from their admin.
-- **Template / lookbook library** seeded with real packaging examples from CustomBoxes.io's portfolio, so the AI has concrete references instead of just text prompts.
-- **Revision history with visual diff** and named checkpoints so you can compare v1 vs v3 at a glance.
-- **WebGL 3D preview** with real corrugated texture mapping and lighting, swap from the current CSS-3D approximation.
-- **Preflight / print-readiness score** (min text size, stroke weight, element-to-fold clearance) with a linter-style checklist.
-- **Collaborative share links** so a brand can send `customboxes.io/review/abc123` to a teammate for approval.
-
----
-
-## 9. How the scoring rubric maps to this build (for self-check)
-
-| Rubric area | Points | How this submission addresses it |
-|---|---|---|
-| Packaging layout quality + ability to make changes | 30 | Panel-aware 6-panel SVG dieline with fold lines, crop marks, proportional dimensions from real L×W×H. Black-ink-only enforced via SVG filters. AI-prompt refinement preserves panel logic. Per-panel logo sizing sliders + 1/2/4-side toggle + global scale. SVG + PNG export. |
-| End-to-end working prototype | 20 | Full flow functions: URL → brand → size (known OR unknown) → design → refine → export. Every step calls a real Claude endpoint. No placeholder screens. |
-| Brand understanding from URL | 20 | Real HTML scrape with title / OG / meta / body, structured `BrandAnalysis` with tone, tagline, target customer, visual style, typography notes, messaging signals, recommended box color, industry category. User can edit any field inline before proceeding. |
-| Box size recommendation quality | 20 | 14-box catalog. AI constrained by box id, cannot invent dimensions. Output includes confidence badge, 2–3 sentence rationale, ECT rating (32 ECT / Heavy Duty), box color, alternate box. Refund-policy disclaimer with link. |
-| Tool integration + tech judgment | 5 | Next.js 16 App Router, Tailwind v4, `@anthropic-ai/sdk`, resilient JSON parsing with balanced-brace scan + retry, 5 API routes, useReducer state, inline SVG for true print-readiness. |
-| Polish + clarity | 5 | DM Serif Display + DM Sans, CustomBoxes.io orange (#D4622B) as accent, kraft/white box chips, per-step loading states, inline error surfacing, ROI drawer, floating packaging AI assistant, proper footer with all three required CustomBoxes.io links. |
-
----
-
-## 10. Known limitations / honest caveats
-
-- **Runs locally by default.** To satisfy "live prototype URL", deploy to Vercel (§5).
-- **Homepage-only scrape.** A multi-page crawl would improve brand inference but was out of scope for 60 minutes.
-- **Claude model is pinned** to `claude-sonnet-4-6`. Upgrade / downgrade by editing `CLAUDE_MODEL` in [customboxes-ai/src/lib/constants.ts](customboxes-ai/src/lib/constants.ts). (Haiku 4.5 = `claude-haiku-4-5-20251001` if you want to cut cost by ~5x at some quality cost on design JSON.)
-- **Price estimates are mocked tiers** — the ROI drawer always links out to the real CustomBoxes.io ROI calculator for exact numbers.
-- **No PDF export.** The plan marked this `[NICE]` and SVG + PNG covers the print-ready-file requirement adequately.
-- **The 3D preview is CSS-3D**, not a real WebGL mockup — hovering rotates it; it shows 5 visible faces (front/back/left/right/top), not bottom.
-
----
-
-## 11. Troubleshooting — when the app shows a Claude error
-
-The app now surfaces the real Anthropic error message in the UI. The most common ones:
+If Claude returns an error, the app now surfaces the real message instead of a generic "try again" prompt. Common ones:
 
 | Message contains | What it means | Fix |
 |---|---|---|
-| *"credit balance is too low"* / *"billing"* | Your Anthropic account has $0 credits | Go to https://console.anthropic.com/settings/billing → add credits (a $5 top-up is plenty for a demo) |
-| *"API key"* / *"authentication"* | `ANTHROPIC_API_KEY` missing or wrong | Check `customboxes-ai/.env.local`, paste a valid key, **restart `npm run dev`** (Next.js only reads env on boot) |
-| *"rate limit"* | Too many requests too fast | Wait 10–20s and retry |
-| *"model"* + *"not found"* / *"invalid"* / *"deprecated"* | The model string is stale | Edit `CLAUDE_MODEL` in [customboxes-ai/src/lib/constants.ts](customboxes-ai/src/lib/constants.ts) — current default is `claude-sonnet-4-6` |
-| Network / fetch failure on the URL analysis step | Target site blocked the scrape | Try a different URL (most major brand sites work: allbirds.com, bombas.com, glossier.com, yeti.com) |
-
-> **Note:** If you edit `.env.local` while the dev server is running, **you must restart it.** Next.js only reads env vars at boot. Stop with Ctrl+C, run `npm run dev` again.
+| *"credit balance is too low"* | Anthropic account has $0 credits | Top up at https://console.anthropic.com/settings/billing — the app will also auto-fall-back to demo mode so the flow still completes. |
+| *"API key"* / *"authentication"* | `ANTHROPIC_API_KEY` missing or wrong | Check `customboxes-ai/.env.local`, paste a valid key, **restart the dev server** (Next.js only reads env at boot). |
+| *"rate limit"* | Too many requests in a short window | Wait ~20s and retry. |
+| Network / fetch failure on the URL step | Target site blocked the scrape | Try a different URL (allbirds.com, bombas.com, glossier.com, yeti.com all work). |
 
 ---
 
-## 12. Final pre-submission checklist
-
-- [ ] Cloned the repo fresh and confirmed `npm install && npm run dev` works
-- [ ] Set `ANTHROPIC_API_KEY` in `.env.local`
-- [ ] Ran Flow A end-to-end with one URL (e.g. allbirds.com) and downloaded at least one file
-- [ ] Ran Flow B end-to-end with a different URL (e.g. bombas.com)
-- [ ] Recorded Loom (3–5 min) showing both flows
-- [ ] (Optional) Deployed to Vercel and added the API key as an env var
-- [ ] Submission form filled with: repo URL + Loom URL + summary (paste §6, §7, §8 from this doc) + live URL if deployed
-
----
-
-## Quick reference — all the CustomBoxes.io links wired into the app
-
-- Home — https://customboxes.io
-- ROI / Break-even / Comp Shop — https://customboxes.io/pages/custom-shipping-boxes-roi-breakeven-comp-shop-calculators
-- Refund Policy — https://customboxes.io/policies/refund-policy
-- Large Order Quote — https://customboxes.io/pages/large-order-quote-request-form
-- Standard Boxes collection — https://customboxes.io/collections/standard-shipping-boxes
+*Thanks for reviewing. Happy to walk through any part of the code or design decisions on a call.*
