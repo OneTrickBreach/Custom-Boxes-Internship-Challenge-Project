@@ -1,6 +1,13 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, ArrowLeft, Download, Sparkles, RotateCcw } from 'lucide-react';
+import { MutableRefObject, useEffect, useRef, useState } from 'react';
+import {
+  ArrowRight,
+  ArrowLeft,
+  Download,
+  FileImage,
+  Sparkles,
+  RotateCcw,
+} from 'lucide-react';
 import type {
   BoxSize,
   DesignLayout,
@@ -11,6 +18,7 @@ import { BoxLayoutSVG } from './BoxLayoutSVG';
 import { Box3DPreview } from './Box3DPreview';
 
 interface Props {
+  mainSvgRef?: MutableRefObject<SVGSVGElement | null>;
   box: BoxSize;
   brandAnalysis: BrandAnalysis;
   boxRecommendation: BoxRecommendation | null;
@@ -23,6 +31,7 @@ interface Props {
   onBack: () => void;
   onContinue: () => void;
   onDownloadSvg: () => void;
+  onDownloadPng: () => void;
   initialLogoScale?: number;
   initialLogoSides?: 1 | 2 | 4;
   onChangeLogoScale?: (v: number) => void;
@@ -30,6 +39,7 @@ interface Props {
 }
 
 export function Step4DesignGen({
+  mainSvgRef,
   box,
   brandAnalysis,
   boxRecommendation,
@@ -42,6 +52,7 @@ export function Step4DesignGen({
   onBack,
   onContinue,
   onDownloadSvg,
+  onDownloadPng,
   initialLogoScale = 1,
   initialLogoSides = 1,
   onChangeLogoScale,
@@ -52,7 +63,6 @@ export function Step4DesignGen({
   );
   const [logoScale, setLogoScale] = useState<number>(initialLogoScale);
   const [logoSides, setLogoSides] = useState<1 | 2 | 4>(initialLogoSides);
-  const svgRef = useRef<SVGSVGElement>(null);
   const [zoomPanel, setZoomPanel] = useState<string | null>(null);
   const firstRender = useRef(true);
 
@@ -127,7 +137,8 @@ export function Step4DesignGen({
             )}
             {design && (
               <BoxLayoutSVG
-                ref={svgRef}
+                ref={mainSvgRef}
+                isExportTarget
                 length={box.length}
                 width={box.width}
                 height={box.height}
@@ -307,10 +318,20 @@ export function Step4DesignGen({
             <button
               type="button"
               onClick={onDownloadSvg}
-              className="btn-ghost w-full h-10 rounded-md text-[13px] font-medium flex items-center justify-center gap-2"
+              disabled={!design}
+              className="btn-ghost w-full h-10 rounded-md text-[13px] font-medium flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <Download className="w-3.5 h-3.5" />
               Download SVG
+            </button>
+            <button
+              type="button"
+              onClick={onDownloadPng}
+              disabled={!design}
+              className="btn-ghost w-full h-10 rounded-md text-[13px] font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <FileImage className="w-3.5 h-3.5" />
+              Download PNG
             </button>
             <button
               type="button"

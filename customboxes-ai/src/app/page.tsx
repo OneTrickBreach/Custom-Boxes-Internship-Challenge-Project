@@ -1,5 +1,5 @@
 'use client';
-import { useReducer, useRef, useState, useCallback } from 'react';
+import { useReducer, useRef, useState, useCallback, useEffect } from 'react';
 import { Calculator } from 'lucide-react';
 import { Header } from '../components/Header';
 import { StepIndicator } from '../components/StepIndicator';
@@ -129,65 +129,113 @@ function reducer(state: AppState, action: Action): AppState {
 }
 
 function serializeSvg(svg: SVGSVGElement): string {
-  // Clone and inline minimal font info
   const clone = svg.cloneNode(true) as SVGSVGElement;
   clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
   clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
-  // Add simple style for exported font family fallbacks
-  const style = document.createElementNS('http://www.w3.org/2000/svg', 'style');
-  style.textContent =
-    'text{font-family:"DM Sans",Arial,sans-serif;}text[font-family*="serif"]{font-family:"DM Serif Display","Times New Roman",serif;}';
-  clone.insertBefore(style, clone.firstChild);
-  return new XMLSerializer().serializeToString(clone);
+  // Ensure viewBox is set (for img rendering compatibility).
+  if (!clone.getAttribute('viewBox')) {
+    const vb = svg.viewBox.baseVal;
+    if (vb && vb.width && vb.height) {
+      clone.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.width} ${vb.height}`);
+    }
+  }
+  // Inline a background rect so exported SVG isn't transparent.
+  const vb = svg.viewBox.baseVal;
+  if (vb) {
+    // The SVG already paints its own background rect as the first <rect>,
+    // but add an explicit bgcolor too for PDF renderers.
+    clone.setAttribute('style', 'background:#FAFAF8;');
+  }
+  // Rewrite any CSS-variable font-family on <text> nodes to static names so
+  // the file renders outside the app.
+  const texts = clone.querySelectorAll('text');
+  texts.forEach((t) => {
+    const ff = t.getAttribute('font-family') || '';
+    if (ff.includes('--font-dm-serif')) {
+      t.setAttribute('font-family', '"DM Serif Display", "Times New Roman", serif');
+    } else if (ff.includes('--font-dm-sans') || ff.startsWith('var(')) {
+      t.setAttribute('font-family', '"DM Sans", Arial, sans-serif');
+    }
+  });
+  const styleEl = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+  styleEl.textContent =
+    'text{font-family:"DM Sans",Arial,sans-serif;}text[font-family*="serif" i]{font-family:"DM Serif Display","Times New Roman",serif;}';
+  clone.insertBefore(styleEl, clone.firstChild);
+  return '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(clone);
+}
+
+function triggerDownload(url: string, filename: string) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  // Give the browser a tick to start the download before revoking.
+  setTimeout(() => {
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, 1500);
 }
 
 function downloadSvgFile(svg: SVGSVGElement, filename: string) {
   const str = serializeSvg(svg);
   const blob = new Blob([str], { type: 'image/svg+xml;charset=utf-8' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 500);
+  triggerDownload(url, filename);
 }
 
 async function downloadPngFile(svg: SVGSVGElement, filename: string, scale = 2) {
   const str = serializeSvg(svg);
-  const blob = new Blob([str], { type: 'image/svg+xml;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
+  // Use a data URL instead of blob URL — works around cross-origin tainting
+  // in some browsers when the SVG embeds data: images (like the user logo).
+  const dataUrl =
+    'data:image/svg+xml;charset=utf-8,' +
+    encodeURIComponent(str);
   const img = new Image();
-  img.crossOrigin = 'anonymous';
-  const viewBox = svg.viewBox.baseVal;
-  const w = (viewBox.width || svg.clientWidth) * scale;
-  const h = (viewBox.height || svg.clientHeight) * scale;
-  await new Promise<void>((resolve, reject) => {
-    img.onload = () => resolve();
-    img.onerror = () => reject(new Error('png render failed'));
-    img.src = url;
-  });
+  const vb = svg.viewBox.baseVal;
+  const w = Math.max(100, (vb?.width || svg.clientWidth || 900) * scale);
+  const h = Math.max(100, (vb?.height || svg.clientHeight || 600) * scale);
+  try {
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = (e) => reject(e);
+      img.src = dataUrl;
+    });
+  } catch (err) {
+    console.error('PNG export: image failed to load', err);
+    alert(
+      'PNG export failed — your browser may have blocked the embedded image. Try the SVG download instead.',
+    );
+    return;
+  }
   const canvas = document.createElement('canvas');
-  canvas.width = w;
-  canvas.height = h;
+  canvas.width = Math.round(w);
+  canvas.height = Math.round(h);
   const ctx = canvas.getContext('2d');
-  if (!ctx) return;
+  if (!ctx) {
+    alert('PNG export failed — canvas is unavailable.');
+    return;
+  }
   ctx.fillStyle = '#FAFAF8';
-  ctx.fillRect(0, 0, w, h);
-  ctx.drawImage(img, 0, 0, w, h);
-  URL.revokeObjectURL(url);
-  canvas.toBlob((b) => {
-    if (!b) return;
-    const pngUrl = URL.createObjectURL(b);
-    const a = document.createElement('a');
-    a.href = pngUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(pngUrl), 500);
-  }, 'image/png');
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  try {
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob((b) => resolve(b), 'image/png'),
+    );
+    if (!blob) {
+      alert('PNG export failed — canvas could not produce an image.');
+      return;
+    }
+    const pngUrl = URL.createObjectURL(blob);
+    triggerDownload(pngUrl, filename);
+  } catch (err) {
+    console.error('PNG export: toBlob failed', err);
+    alert(
+      'PNG export failed. This can happen if the SVG embeds an external image. Try the SVG download instead.',
+    );
+  }
 }
 
 export default function Home() {
@@ -195,9 +243,36 @@ export default function Home() {
   const [roiOpen, setRoiOpen] = useState(false);
   const [step4LogoScale, setStep4LogoScale] = useState(1);
   const [step4LogoSides, setStep4LogoSides] = useState<1 | 2 | 4>(1);
+  const [demoMode, setDemoMode] = useState(false);
 
-  // Refs for SVGs to enable export. The latest rendered SVG node is found via queryselector.
+  // The main flattened-layout SVG ref. Forwarded down into Step4/Step5 so
+  // downloads always grab the right element regardless of DOM shape.
+  const mainSvgRef = useRef<SVGSVGElement | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+
+  // Initial demo mode check + keep refreshing if any response flips it.
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/status', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled) setDemoMode(Boolean(d?.demoMode));
+      })
+      .catch(() => void 0);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const noteFallback = useCallback((data: unknown) => {
+    if (
+      data &&
+      typeof data === 'object' &&
+      (data as { __demo?: boolean }).__demo === true
+    ) {
+      setDemoMode(true);
+    }
+  }, []);
 
   const analyzeBrand = useCallback(async (overrideUrl?: string) => {
     const targetUrl = overrideUrl || state.url;
@@ -215,6 +290,7 @@ export default function Home() {
       if (!res.ok) {
         throw new Error(data?.error || 'Analysis failed.');
       }
+      noteFallback(data);
       dispatch({ type: 'SET_BRAND', brand: data as BrandAnalysis });
       dispatch({ type: 'SET_LOADING', loading: false });
       dispatch({ type: 'SET_STEP', step: 2 });
@@ -222,7 +298,7 @@ export default function Home() {
       const message = err instanceof Error ? err.message : 'Analysis failed.';
       dispatch({ type: 'SET_ERROR', error: message });
     }
-  }, [state.url, state.additionalNotes]);
+  }, [state.url, state.additionalNotes, noteFallback]);
 
   const requestRecommendation = useCallback(
     async (answers: SizingAnswers) => {
@@ -239,6 +315,7 @@ export default function Home() {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error || 'Recommendation failed.');
+        noteFallback(data);
         dispatch({ type: 'SET_RECOMMENDATION', rec: data as BoxRecommendation });
         dispatch({ type: 'SET_LOADING', loading: false });
       } catch (err) {
@@ -246,7 +323,7 @@ export default function Home() {
         dispatch({ type: 'SET_ERROR', error: message });
       }
     },
-    [state.brandAnalysis],
+    [state.brandAnalysis, noteFallback],
   );
 
   const generateDesign = useCallback(
@@ -273,6 +350,7 @@ export default function Home() {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error || 'Design failed.');
+        noteFallback(data);
         dispatch({ type: 'SET_DESIGN', design: data as DesignLayout });
         dispatch({ type: 'SET_LOADING', loading: false });
       } catch (err) {
@@ -285,6 +363,7 @@ export default function Home() {
       state.boxRecommendation,
       state.brandAnalysis,
       state.logoDataUrl,
+      noteFallback,
     ],
   );
 
@@ -307,6 +386,7 @@ export default function Home() {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error || 'Refine failed.');
+        noteFallback(data);
         dispatch({ type: 'SET_DESIGN', design: data as DesignLayout, pushHistory: true });
         dispatch({ type: 'SET_LOADING', loading: false });
       } catch (err) {
@@ -319,39 +399,59 @@ export default function Home() {
       state.boxRecommendation,
       state.brandAnalysis,
       state.designLayout,
+      noteFallback,
     ],
   );
 
-  const handleDownloadSvg = () => {
-    // find first visible inline svg in the main design area
-    const container = rootRef.current;
-    if (!container) return;
-    const svg = container.querySelector<SVGSVGElement>(
-      'section svg[viewBox]',
+  const findExportSvg = (): SVGSVGElement | null => {
+    // 1) Prefer the tagged main SVG via data attribute — reliable regardless of DOM shape.
+    const byAttr = document.querySelector<SVGSVGElement>(
+      'svg[data-export-target="main"]',
     );
-    if (!svg) return;
+    if (byAttr) return byAttr;
+    // 2) Fallback to the ref.
+    if (mainSvgRef.current) return mainSvgRef.current;
+    // 3) Last resort: first viewBox svg in the current step's section.
+    return (
+      rootRef.current?.querySelector<SVGSVGElement>('section svg[viewBox]') ||
+      null
+    );
+  };
+
+  const handleDownloadSvg = () => {
+    const svg = findExportSvg();
+    if (!svg) {
+      alert('No design to download yet — please generate one first.');
+      return;
+    }
     const box = state.selectedBoxSize;
     const name = box
       ? `customboxes-${box.name.replace(/×/g, 'x')}.svg`
       : 'customboxes-design.svg';
-    downloadSvgFile(svg, name);
+    try {
+      downloadSvgFile(svg, name);
+    } catch (err) {
+      console.error('SVG download failed', err);
+      alert('SVG download failed. Check the browser console for details.');
+    }
   };
 
-  const handleDownloadPng = () => {
-    const container = rootRef.current;
-    if (!container) return;
-    const svg = container.querySelector<SVGSVGElement>('section svg[viewBox]');
-    if (!svg) return;
+  const handleDownloadPng = async () => {
+    const svg = findExportSvg();
+    if (!svg) {
+      alert('No design to download yet — please generate one first.');
+      return;
+    }
     const box = state.selectedBoxSize;
     const name = box
       ? `customboxes-${box.name.replace(/×/g, 'x')}.png`
       : 'customboxes-design.png';
-    downloadPngFile(svg, name);
+    await downloadPngFile(svg, name);
   };
 
   return (
     <div className="flex-1 flex flex-col" ref={rootRef}>
-      <Header />
+      <Header demoMode={demoMode} />
       {state.currentStep > 1 && (
         <StepIndicator
           currentStep={state.currentStep}
@@ -427,6 +527,7 @@ export default function Home() {
           state.brandAnalysis &&
           state.selectedBoxSize && (
             <Step4DesignGen
+              mainSvgRef={mainSvgRef}
               box={state.selectedBoxSize}
               brandAnalysis={state.brandAnalysis}
               boxRecommendation={state.boxRecommendation}
@@ -439,6 +540,7 @@ export default function Home() {
               onBack={() => dispatch({ type: 'SET_STEP', step: 3 })}
               onContinue={() => dispatch({ type: 'SET_STEP', step: 5 })}
               onDownloadSvg={handleDownloadSvg}
+              onDownloadPng={handleDownloadPng}
               initialLogoScale={step4LogoScale}
               initialLogoSides={step4LogoSides}
               onChangeLogoScale={setStep4LogoScale}
@@ -450,6 +552,7 @@ export default function Home() {
           state.brandAnalysis &&
           state.selectedBoxSize && (
             <Step5DesignEditor
+              mainSvgRef={mainSvgRef}
               box={state.selectedBoxSize}
               brandAnalysis={state.brandAnalysis}
               boxRecommendation={state.boxRecommendation}
@@ -516,10 +619,35 @@ export default function Home() {
         <button
           type="button"
           onClick={() => setRoiOpen(true)}
-          className="fixed bottom-5 left-5 z-40 h-10 px-3 rounded-full btn-ghost bg-white shadow-sm text-[12px] font-medium flex items-center gap-1.5"
+          aria-label="Open ROI calculator"
+          style={{
+            position: 'fixed',
+            bottom: 20,
+            left: 20,
+            zIndex: 40,
+            height: 40,
+            paddingLeft: 14,
+            paddingRight: 16,
+            borderRadius: 9999,
+            background: '#FFFFFF',
+            border: '1px solid var(--border-strong)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+            fontSize: 12,
+            fontWeight: 500,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            cursor: 'pointer',
+            color: 'var(--text-primary)',
+          }}
         >
-          <Calculator className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-          ROI
+          <Calculator
+            width={16}
+            height={16}
+            strokeWidth={2}
+            style={{ color: 'var(--accent)', flex: '0 0 auto' }}
+          />
+          <span>ROI</span>
         </button>
       )}
 

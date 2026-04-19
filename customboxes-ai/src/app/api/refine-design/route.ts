@@ -98,6 +98,21 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const { status, userMessage, code } = describeClaudeError(err);
     console.error('refine-design failed:', code, userMessage);
+    if (code === 'credits' || code === 'auth' || code === 'rate_limit') {
+      try {
+        const body = await req.clone().json().catch(() => null);
+        if (body?.currentDesign && body?.userPrompt) {
+          console.warn('refine-design: falling back to demo fixture (', code, ')');
+          return NextResponse.json({
+            ...mockRefineDesign(body.currentDesign, body.userPrompt),
+            __demo: true,
+            __demoReason: code,
+          });
+        }
+      } catch {
+        /* fall through */
+      }
+    }
     return NextResponse.json({ error: userMessage, code }, { status });
   }
 }

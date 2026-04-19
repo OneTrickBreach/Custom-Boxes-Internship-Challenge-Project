@@ -1,17 +1,8 @@
 'use client';
-import { useEffect, useState } from 'react';
 import { Package, Sparkles } from 'lucide-react';
 import { CUSTOMBOXES_LINKS } from '../lib/constants';
 
-export function Header() {
-  const [demoMode, setDemoMode] = useState<boolean | null>(null);
-  useEffect(() => {
-    fetch('/api/status')
-      .then((r) => r.json())
-      .then((d) => setDemoMode(Boolean(d.demoMode)))
-      .catch(() => setDemoMode(null));
-  }, []);
-
+export function Header({ demoMode = false }: { demoMode?: boolean }) {
   return (
     <header className="w-full border-b hairline bg-white/80 backdrop-blur sticky top-0 z-30">
       <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">

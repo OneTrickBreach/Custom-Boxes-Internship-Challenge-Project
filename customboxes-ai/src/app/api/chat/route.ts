@@ -59,6 +59,22 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const { status, userMessage, code } = describeClaudeError(err);
     console.error('chat failed:', code, userMessage);
+    if (code === 'credits' || code === 'auth' || code === 'rate_limit') {
+      try {
+        const body = await req.clone().json().catch(() => null);
+        const msgs = (body?.messages || []) as { role: string; content: string }[];
+        const last = msgs[msgs.length - 1];
+        if (last) {
+          return NextResponse.json({
+            reply: mockChatReply(last.content),
+            __demo: true,
+            __demoReason: code,
+          });
+        }
+      } catch {
+        /* fall through */
+      }
+    }
     return NextResponse.json({ error: userMessage, code }, { status });
   }
 }

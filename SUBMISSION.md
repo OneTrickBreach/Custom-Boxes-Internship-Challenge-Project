@@ -123,6 +123,10 @@ Demo mode auto-activates when no API key is present. You'll see a small **"Demo 
 
 You can mix modes too: start in demo to show the happy path, stop the server, paste a real API key in `.env.local`, restart, and show one real end-to-end run.
 
+### Automatic fallback
+
+The app **also auto-falls-back** to demo fixtures server-side if Claude itself returns a `credits` / `auth` / `rate_limit` error. So even if you start the app in "real" mode with an API key that's run out, the flow completes (and the UI flips the **Demo Mode** pill on so you know it's simulated). This makes the prototype demoable regardless of billing state — there's no way to get stuck at a "credits too low" wall mid-flow.
+
 ---
 
 ## 4. Demo script for the Loom recording (3–5 min total)

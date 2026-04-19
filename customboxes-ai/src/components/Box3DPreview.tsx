@@ -12,7 +12,8 @@ interface Props {
   logoScale?: number;
   logoSides?: 1 | 2 | 4;
   companyName?: string;
-  logoScales?: Partial<Record<PanelKey, number>>;
+  panelScales?: Partial<Record<PanelKey, number>>;
+  height?: number;
 }
 
 /**
@@ -28,7 +29,8 @@ export function Box3DPreview({
   logoScale = 1,
   logoSides = 1,
   companyName,
-  logoScales,
+  panelScales,
+  height = 520,
 }: Props) {
   const [hovering, setHovering] = useState(false);
   const [rot, setRot] = useState({ x: -18, y: -28 });
@@ -50,7 +52,10 @@ export function Box3DPreview({
     return () => el.removeEventListener('mousemove', handler);
   }, [hovering]);
 
-  const PX_PER_UNIT = 12;
+  // Scale the box so the largest dimension fits comfortably in the preview area.
+  const maxPreviewDim = Math.min(height * 0.72, 540);
+  const largestDim = Math.max(box.length, box.width, box.height);
+  const PX_PER_UNIT = Math.max(14, Math.min(38, maxPreviewDim / largestDim));
   const l = box.length * PX_PER_UNIT;
   const w = box.width * PX_PER_UNIT;
   const h = box.height * PX_PER_UNIT;
@@ -78,7 +83,7 @@ export function Box3DPreview({
           logoScale={logoScale}
           logoSides={logoSides}
           companyName={companyName}
-          logoScales={logoScales}
+          panelScales={panelScales}
           showCropMarks={false}
           showFoldLines={false}
           showPanelLabels={false}
@@ -100,9 +105,9 @@ export function Box3DPreview({
         setRot({ x: -18, y: -28 });
       }}
       style={{
-        perspective: 1400,
+        perspective: 1600,
         width: '100%',
-        height: 320,
+        height,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

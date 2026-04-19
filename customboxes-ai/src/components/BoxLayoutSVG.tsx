@@ -34,8 +34,10 @@ export interface BoxLayoutSVGProps {
   /** Override viewBox to crop to a specific region (used by 3D preview). */
   viewBoxOverride?: string;
   preserveAspectRatio?: string;
-  /** Per-panel logo scale multipliers. Falls back to logoScale. */
-  logoScales?: Partial<Record<string, number>>;
+  /** Per-panel content scale (applies to logo + text + QR + barcode on that panel). */
+  panelScales?: Partial<Record<string, number>>;
+  /** Set data-export-target="main" so the download handler can find this SVG. */
+  isExportTarget?: boolean;
 }
 
 function panelLabel(p: string) {
@@ -46,9 +48,10 @@ function renderTextElement(
   el: DesignElement,
   rect: PanelRect,
   key: string,
+  scale = 1,
 ) {
   const abs = elementAbsPos(el, rect);
-  const fontSize = Math.max(8, (el.fontSize || 14) * 1.2);
+  const fontSize = Math.max(6, (el.fontSize || 14) * 1.2 * scale);
   const weight =
     el.fontWeight === 'bold'
       ? 700
@@ -196,10 +199,15 @@ function renderBorderElement(el: DesignElement, rect: PanelRect, key: string) {
   );
 }
 
-function renderQrPlaceholder(el: DesignElement, rect: PanelRect, key: string) {
+function renderQrPlaceholder(
+  el: DesignElement,
+  rect: PanelRect,
+  key: string,
+  scale = 1,
+) {
   const abs = elementAbsPos(el, rect);
-  const w = ((el.width ?? 18) / 100) * rect.w;
-  const h = ((el.height ?? 18) / 100) * rect.h;
+  const w = ((el.width ?? 18) / 100) * rect.w * scale;
+  const h = ((el.height ?? 18) / 100) * rect.h * scale;
   const size = Math.min(w, h);
   const x = abs.x - size / 2;
   const y = abs.y - size / 2;
@@ -280,10 +288,11 @@ function renderBarcodePlaceholder(
   el: DesignElement,
   rect: PanelRect,
   key: string,
+  scale = 1,
 ) {
   const abs = elementAbsPos(el, rect);
-  const w = ((el.width ?? 30) / 100) * rect.w;
-  const h = ((el.height ?? 10) / 100) * rect.h;
+  const w = ((el.width ?? 30) / 100) * rect.w * scale;
+  const h = ((el.height ?? 10) / 100) * rect.h * scale;
   const x = abs.x - w / 2;
   const y = abs.y - h / 2;
   const bars = 22;
@@ -292,11 +301,11 @@ function renderBarcodePlaceholder(
     (_, i) => 0.5 + ((i * 9301 + 49297) % 100) / 100,
   );
   const totalW = widths.reduce((a, b) => a + b, 0);
-  const scale = w / totalW;
+  const barScale = w / totalW;
   let cursor = 0;
   const rects: React.ReactElement[] = [];
   for (let i = 0; i < bars; i++) {
-    const bw = widths[i] * scale * 0.7;
+    const bw = widths[i] * barScale * 0.7;
     if (i % 2 === 0) {
       rects.push(
         <rect
@@ -309,7 +318,7 @@ function renderBarcodePlaceholder(
         />,
       );
     }
-    cursor += widths[i] * scale;
+    cursor += widths[i] * barScale;
   }
   return <g key={key}>{rects}</g>;
 }
@@ -358,14 +367,14 @@ function renderElement(
   rect: PanelRect,
   key: string,
   logoDataUrl: string | null,
-  logoScale: number,
+  panelScale: number,
   companyName?: string,
 ) {
   switch (el.type) {
     case 'logo':
-      return renderLogoElement(el, rect, key, logoDataUrl, logoScale, companyName);
+      return renderLogoElement(el, rect, key, logoDataUrl, panelScale, companyName);
     case 'text':
-      return renderTextElement(el, rect, key);
+      return renderTextElement(el, rect, key, panelScale);
     case 'line':
       return renderLineElement(el, rect, key);
     case 'border':
@@ -373,9 +382,9 @@ function renderElement(
     case 'icon':
       return renderIcon(el, rect, key);
     case 'qr-placeholder':
-      return renderQrPlaceholder(el, rect, key);
+      return renderQrPlaceholder(el, rect, key, panelScale);
     case 'barcode-placeholder':
-      return renderBarcodePlaceholder(el, rect, key);
+      return renderBarcodePlaceholder(el, rect, key, panelScale);
     default:
       return null;
   }
@@ -402,7 +411,8 @@ export const BoxLayoutSVG = forwardRef<SVGSVGElement, BoxLayoutSVGProps>(
       onPanelClick,
       viewBoxOverride,
       preserveAspectRatio,
-      logoScales,
+      panelScales,
+      isExportTarget,
     }: BoxLayoutSVGProps,
     ref,
   ) {
@@ -435,6 +445,7 @@ export const BoxLayoutSVG = forwardRef<SVGSVGElement, BoxLayoutSVGProps>(
         preserveAspectRatio={preserveAspectRatio || 'xMidYMid meet'}
         className={className}
         xmlns="http://www.w3.org/2000/svg"
+        data-export-target={isExportTarget ? 'main' : undefined}
       >
         <defs>
           <filter id="ink-filter">
@@ -567,22 +578,25 @@ export const BoxLayoutSVG = forwardRef<SVGSVGElement, BoxLayoutSVGProps>(
             }
             return true;
           });
-          const panelLogoScale =
-            (logoScales && logoScales[pd.panel] !== undefined
-              ? logoScales[pd.panel]!
-              : logoScale) || 1;
+          const perPanel =
+            panelScales && panelScales[pd.panel] !== undefined
+              ? panelScales[pd.panel]!
+              : 1;
+          // Logos respect the global logoScale; everything else uses per-panel only.
+          const logoEffectiveScale = logoScale * perPanel;
           return (
             <g key={pd.panel}>
-              {filteredElements.map((el, i) =>
-                renderElement(
+              {filteredElements.map((el, i) => {
+                const scale = el.type === 'logo' ? logoEffectiveScale : perPanel;
+                return renderElement(
                   el,
                   rect,
                   `${pd.panel}-${i}`,
                   logoDataUrl,
-                  panelLogoScale,
+                  scale,
                   companyName,
-                ),
-              )}
+                );
+              })}
             </g>
           );
         })}

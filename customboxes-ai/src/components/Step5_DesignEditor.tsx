@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState } from 'react';
+import { MutableRefObject, useState } from 'react';
 import {
   ArrowLeft,
   Download,
@@ -17,8 +17,10 @@ import type {
 } from '../lib/types';
 import { BoxLayoutSVG } from './BoxLayoutSVG';
 import { Box3DPreview } from './Box3DPreview';
+import { ToggleSwitch } from './ui/ToggleSwitch';
 
 interface Props {
+  mainSvgRef?: MutableRefObject<SVGSVGElement | null>;
   box: BoxSize;
   brandAnalysis: BrandAnalysis;
   boxRecommendation: BoxRecommendation | null;
@@ -47,6 +49,7 @@ const SUGGESTION_CHIPS = [
 ];
 
 export function Step5DesignEditor({
+  mainSvgRef,
   box,
   brandAnalysis,
   boxRecommendation,
@@ -79,7 +82,6 @@ export function Step5DesignEditor({
   const [showTagline, setShowTagline] = useState(true);
   const [showUrl, setShowUrl] = useState(true);
   const [showQr, setShowQr] = useState(true);
-  const svgRef = useRef<SVGSVGElement>(null);
 
   const submit = () => {
     if (!prompt.trim() || isLoading) return;
@@ -159,7 +161,8 @@ export function Step5DesignEditor({
             )}
             {filteredDesign && (
               <BoxLayoutSVG
-                ref={svgRef}
+                ref={mainSvgRef}
+                isExportTarget
                 length={box.length}
                 width={box.width}
                 height={box.height}
@@ -169,9 +172,7 @@ export function Step5DesignEditor({
                 logoScale={logoScale}
                 logoSides={logoSides}
                 companyName={brandAnalysis.companyName}
-                logoScales={Object.fromEntries(
-                  Object.entries(perPanelScale).map(([k, v]) => [k, logoScale * v]),
-                )}
+                panelScales={perPanelScale}
                 className="w-full h-auto"
               />
             )}
@@ -190,9 +191,7 @@ export function Step5DesignEditor({
                 logoScale={logoScale}
                 logoSides={logoSides}
                 companyName={brandAnalysis.companyName}
-                logoScales={Object.fromEntries(
-                  Object.entries(perPanelScale).map(([k, v]) => [k, logoScale * v]),
-                )}
+                panelScales={perPanelScale}
               />
             </div>
           )}
@@ -335,9 +334,9 @@ export function Step5DesignEditor({
               </div>
             </div>
             <div className="border-t hairline pt-3">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-1">
                 <span className="text-[11px] uppercase tracking-wider text-[color:var(--text-secondary)]">
-                  Per-Panel Logo Size
+                  Per-Panel Content Scale
                 </span>
                 <button
                   type="button"
@@ -356,6 +355,9 @@ export function Step5DesignEditor({
                   Reset
                 </button>
               </div>
+              <p className="text-[10px] text-[color:var(--text-muted)] mb-2">
+                Scales all elements on that panel — text, logo, QR, everything.
+              </p>
               <div className="grid grid-cols-2 gap-x-3 gap-y-2">
                 {(
                   ['front', 'back', 'left', 'right', 'top', 'bottom'] as PanelKey[]
@@ -383,7 +385,7 @@ export function Step5DesignEditor({
                 ))}
               </div>
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               {(
                 [
                   ['Show tagline', showTagline, setShowTagline],
@@ -391,25 +393,17 @@ export function Step5DesignEditor({
                   ['Show QR placeholder', showQr, setShowQr],
                 ] as const
               ).map(([label, val, setVal]) => (
-                <label
+                <div
                   key={label}
                   className="flex items-center justify-between text-[12px]"
                 >
                   <span>{label}</span>
-                  <button
-                    type="button"
-                    onClick={() => setVal(!val)}
-                    className={`w-9 h-5 rounded-full transition-colors relative ${
-                      val ? 'bg-[color:var(--ink-black)]' : 'bg-[color:var(--border-strong)]'
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-                        val ? 'translate-x-4' : 'translate-x-0.5'
-                      }`}
-                    />
-                  </button>
-                </label>
+                  <ToggleSwitch
+                    checked={val}
+                    onChange={setVal}
+                    ariaLabel={label}
+                  />
+                </div>
               ))}
             </div>
           </div>

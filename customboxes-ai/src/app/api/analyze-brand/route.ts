@@ -121,6 +121,16 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       const { status, userMessage, code } = describeClaudeError(err);
       console.error('analyze-brand failed:', code, userMessage);
+      // Soft fallback: when Claude itself is unusable (billing/auth/rate),
+      // serve the mock so the user can still finish the flow.
+      if (code === 'credits' || code === 'auth' || code === 'rate_limit') {
+        console.warn('analyze-brand: falling back to demo fixture (', code, ')');
+        return NextResponse.json({
+          ...mockBrandAnalysis(rawUrl, body.additionalNotes),
+          __demo: true,
+          __demoReason: code,
+        });
+      }
       return NextResponse.json({ error: userMessage, code }, { status });
     }
   } catch (err) {

@@ -93,6 +93,26 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const { status, userMessage, code } = describeClaudeError(err);
     console.error('generate-design failed:', code, userMessage);
+    if (code === 'credits' || code === 'auth' || code === 'rate_limit') {
+      try {
+        const body = await req.clone().json().catch(() => null);
+        if (body?.brandAnalysis && body?.box) {
+          console.warn('generate-design: falling back to demo fixture (', code, ')');
+          return NextResponse.json({
+            ...mockDesign({
+              brand: body.brandAnalysis,
+              box: body.box,
+              boxColor: body.boxColor,
+              hasLogo: Boolean(body.hasLogo),
+            }),
+            __demo: true,
+            __demoReason: code,
+          });
+        }
+      } catch {
+        /* fall through */
+      }
+    }
     return NextResponse.json({ error: userMessage, code }, { status });
   }
 }
