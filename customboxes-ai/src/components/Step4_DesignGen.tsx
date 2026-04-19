@@ -190,9 +190,6 @@ export function Step4DesignGen({
                 logoSides={logoSides}
                 companyName={brandAnalysis.companyName}
               />
-              <div className="text-[11px] text-[color:var(--text-muted)] text-center mt-2">
-                Hover to rotate
-              </div>
             </div>
           )}
         </div>
