@@ -35,6 +35,14 @@ Two modes, both fully functional:
 
 See [`SUBMISSION.md`](./SUBMISSION.md) for the full write-up: deliverables, tools, real-vs-mocked, what I'd improve next, scoring-rubric mapping, and troubleshooting.
 
+## See it in real-Claude mode (with your own key)
+
+The public live site at [`custom-boxes-internship-challenge-p.vercel.app`](https://custom-boxes-internship-challenge-p.vercel.app) runs in **demo mode** (free, simulated). If you have your own Anthropic API key and want to see the real-Claude version (brand analysis against any URL, open-ended AI refinements), the easiest path is a **one-click Vercel deploy under your own account**:
+
+👉 **[Deploy your own copy to Vercel](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FOneTrickBreach%2FCustom-Boxes-Internship-Challenge-Project&root-directory=customboxes-ai&env=ANTHROPIC_API_KEY)**
+
+Vercel will prompt you for your `ANTHROPIC_API_KEY` during setup, deploy to your own URL in ~2 minutes, and run on your Anthropic account. No terminal, no manual env setup. (Running locally with `npm run dev` and your key in `.env.local` also works.)
+
 ## Files
 
 | | |
