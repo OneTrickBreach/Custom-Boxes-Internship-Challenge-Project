@@ -2,7 +2,7 @@
 
 Official submission for the **CustomBoxes.io AI Internship Challenge — Step 2** (60-minute AI Packaging Designer Build).
 
-> **For evaluators:** the live site is at **<< PASTE VERCEL URL HERE >>**. The unlisted demo recording is on YouTube: **<< PASTE YOUTUBE URL HERE >>**. The 2-minute guided tour is in [`REVIEWER_NOTE.md`](./REVIEWER_NOTE.md). The full submission document is [`SUBMISSION.md`](./SUBMISSION.md). The raw recording file is also at [`customboxes-ai-demo.mkv`](./customboxes-ai-demo.mkv) in this repo's root.
+> **For evaluators:** the live site is at **https://custom-boxes-internship-challenge-p.vercel.app**. The unlisted demo recording is on YouTube: **https://youtu.be/fdCf-wcJiR8**. The 2-minute guided tour is in [`REVIEWER_NOTE.md`](./REVIEWER_NOTE.md). The full submission document is [`SUBMISSION.md`](./SUBMISSION.md). The raw recording file is also at [`customboxes-ai-demo.mkv`](./customboxes-ai-demo.mkv) in this repo's root.
 
 A working prototype that:
 - Takes a company URL and uploads a logo.

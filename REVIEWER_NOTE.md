@@ -1,7 +1,7 @@
 # Reviewer's Guide — CustomBoxes.io AI Packaging Designer
 
-**Live app:** << PASTE VERCEL URL HERE >>
-**Demo video (unlisted):** << PASTE YOUTUBE URL HERE >>
+**Live app:** https://custom-boxes-internship-challenge-p.vercel.app
+**Demo video (unlisted):** https://youtu.be/fdCf-wcJiR8
 **GitHub repo:** https://github.com/OneTrickBreach/Custom-Boxes-Internship-Challenge-Project
 
 Sorry the first pass was local-only — everything is now live and reviewable in under 2 minutes. No setup on your end; just click the live app link above.
